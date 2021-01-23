@@ -94,6 +94,7 @@ def untar_s3_prefix(bucket, prefix):
                             file_data = tarball.extractfile(tar_file)
                             key = os.path.join('pdf', tar_file.name)
                             put_file(DESTINATION_BUCKET, key, file_data.read())
+                os.unlink(tar_filename)
 
 def main():
     #Get manifests
