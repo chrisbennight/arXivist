@@ -16,7 +16,7 @@ REGION = "us-east-1"
 
 
 def key_exists(bucket, key):
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client('s3', region_name=REGION)
     try:
         s3_client.head_object(Bucket=bucket, Key=key)
     except ClientError:
@@ -26,7 +26,7 @@ def key_exists(bucket, key):
 
 
 def get_file(bucket, key, output_dir, requester_pays=False):
-    s3_resource = boto3.resource('s3')
+    s3_resource = boto3.resource('s3', region_name=REGION)
     bucket_resource = s3_resource.Bucket(bucket)
     filename = os.path.basename(key)
     if output_dir is None:
@@ -47,8 +47,8 @@ def get_file(bucket, key, output_dir, requester_pays=False):
 
 
 def copy_file(source_bucket, destination_bucket, key):
-    s3_resource = boto3.resource('s3')
-    sqs_resource = boto3.resource('sqs', region=REGION)
+    s3_resource = boto3.resource('s3', region_name=REGION)
+    sqs_resource = boto3.resource('sqs', region_name=REGION)
     untar_queue = sqs_resource.get_queue_by_name(QueueName=UNTAR_QUEUE)
     copy_source = {
         'Bucket': source_bucket,
@@ -83,8 +83,8 @@ def get_files_from_manifest(manifest_file):
 
 
 def populate_sqs_s3_prefix(bucket, prefix):
-    s3_client = boto3.client('s3')
-    sqs_resource = boto3.resource('sqs', region=REGION)
+    s3_client = boto3.client('s3', region_name=REGION)
+    sqs_resource = boto3.resource('sqs', region_name=REGION)
     untar_queue = sqs_resource.get_queue_by_name(QueueName=UNTAR_QUEUE)
 
     paginator = s3_client.get_paginator('list_objects_v2')
