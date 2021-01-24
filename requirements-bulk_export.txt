@@ -1,4 +1,3 @@
-pyoai
 boto3
 daiquiri
 

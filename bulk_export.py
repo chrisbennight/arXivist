@@ -6,7 +6,6 @@ import logging
 from botocore.errorfactory import ClientError
 import tarfile
 
-
 daiquiri.setup(level=logging.INFO)
 log = daiquiri.getLogger(__name__)
 
@@ -15,7 +14,6 @@ DESTINATION_BUCKET = "arxivist"
 
 
 def key_exists(bucket, key):
-
     s3_client = boto3.client('s3')
     try:
         s3_client.head_object(Bucket=bucket, Key=key)
@@ -24,6 +22,7 @@ def key_exists(bucket, key):
 
     return True
 
+
 def put_file(bucket, key, source_bytes):
     if key_exists(bucket, key):
         log.info('Key %s already exists, skipping', key)
@@ -31,8 +30,9 @@ def put_file(bucket, key, source_bytes):
         log.info('Copying %s to bucket %s', key, bucket)
         s3_resource = boto3.resource('s3')
         bucket = s3_resource.Bucket(bucket)
-        object = bucket.Object(key)
-        object.put(Body=source_bytes)
+        s3_object = bucket.Object(key)
+        s3_object.put(Body=source_bytes)
+
 
 def get_file(bucket, key, output_dir, requester_pays=False):
     s3_resource = boto3.resource('s3')
@@ -44,14 +44,14 @@ def get_file(bucket, key, output_dir, requester_pays=False):
         os.makedirs(output_dir)
     output_file = os.path.join(output_dir, filename)
     if requester_pays:
-        extraArgs = {'RequestPayer': 'requester'}
+        extra_args = {'RequestPayer': 'requester'}
     else:
-        extraArgs = None
+        extra_args = None
     if os.path.exists(output_file):
         log.info("File %s already exists, skipping", output_file)
     else:
         log.info('Downloading key %s from bucket %s', key, bucket)
-        bucket_resource.download_file(key, output_file, ExtraArgs=extraArgs)
+        bucket_resource.download_file(key, output_file, ExtraArgs=extra_args)
     return output_file
 
 
@@ -73,8 +73,9 @@ def get_files_from_manifest(manifest_file):
     for event, elem in ET.iterparse(manifest_file):
         if event == 'end':
             if elem.tag == 'filename':
-                fname = elem.text
-                copy_file(fname, SOURCE_BUCKET, DESTINATION_BUCKET)
+                file_name = elem.text
+                copy_file(file_name, SOURCE_BUCKET, DESTINATION_BUCKET)
+
 
 def untar_s3_prefix(bucket, prefix):
     s3_client = boto3.client('s3')
@@ -96,16 +97,15 @@ def untar_s3_prefix(bucket, prefix):
                             put_file(DESTINATION_BUCKET, key, file_data.read())
                 os.unlink(tar_filename)
 
-def main():
-    #Get manifests
-    #get_file('pdf/arXiv_pdf_manifest.xml', "manifests", requester_pays=True)
 
-    #Copy all files from one bucket to another
-    #get_files_from_manifest('manifests/arXiv_pdf_manifest.xml')
+def main():
+    # Get manifests
+    get_file(SOURCE_BUCKET, 'pdf/arXiv_pdf_manifest.xml', "manifests", requester_pays=True)
+
+    # Copy all files from one bucket to another
+    get_files_from_manifest('manifests/arXiv_pdf_manifest.xml')
 
     untar_s3_prefix(DESTINATION_BUCKET, 'pdf')
-
-
 
 
 if __name__ == "__main__":
