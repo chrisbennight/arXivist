@@ -4,14 +4,14 @@ import xml.etree.ElementTree as ET
 import daiquiri
 import logging
 from botocore.errorfactory import ClientError
-import tarfile
-import datetime
+import json
 
 daiquiri.setup(level=logging.INFO)
 log = daiquiri.getLogger(__name__)
 
 SOURCE_BUCKET = "arxiv"
 DESTINATION_BUCKET = "arxivist"
+UNTAR_QUEUE = "arxivist_untar.fifo"
 
 
 def key_exists(bucket, key):
@@ -22,17 +22,6 @@ def key_exists(bucket, key):
         return False
 
     return True
-
-
-def put_file(bucket, key, source_bytes):
-    if key_exists(bucket, key):
-        log.info('Key %s already exists, skipping', key)
-    else:
-        log.info('Copying %s to bucket %s', key, bucket)
-        s3_resource = boto3.resource('s3')
-        bucket = s3_resource.Bucket(bucket)
-        s3_object = bucket.Object(key)
-        s3_object.put(Body=source_bytes)
 
 
 def get_file(bucket, key, output_dir, requester_pays=False):
@@ -58,6 +47,8 @@ def get_file(bucket, key, output_dir, requester_pays=False):
 
 def copy_file(source_bucket, destination_bucket, key):
     s3_resource = boto3.resource('s3')
+    sqs_resource = boto3.resource('sqs')
+    untar_queue = sqs_resource.get_queue_by_name(QueueName=UNTAR_QUEUE)
     copy_source = {
         'Bucket': source_bucket,
         'Key': key
@@ -69,6 +60,18 @@ def copy_file(source_bucket, destination_bucket, key):
         log.info('Copying %s', key)
         bucket.copy(copy_source, key, ExtraArgs={'RequestPayer': 'requester'})
 
+        status_key = "status/%s.processed" % key
+
+        if not key_exists(destination_bucket, status_key):
+            untar_queue.send_message(
+                MessageBody=json.dumps({'key': key, 'bucket': destination_bucket}),
+                MessageGroupId=key,
+                MessageDeduplicationId=key
+            )
+            log.info('Queued key %s in bucket %s', key, bucket)
+        else:
+            log.info("File %s already processed in bucket %s", key, bucket)
+
 
 def get_files_from_manifest(manifest_file):
     for event, elem in ET.iterparse(manifest_file):
@@ -78,8 +81,10 @@ def get_files_from_manifest(manifest_file):
                 copy_file(SOURCE_BUCKET, DESTINATION_BUCKET, file_key)
 
 
-def untar_s3_prefix(bucket, prefix):
+def populate_sqs_s3_prefix(bucket, prefix):
     s3_client = boto3.client('s3')
+    sqs_resource = boto3.resource('sqs')
+    untar_queue = sqs_resource.get_queue_by_name(QueueName=UNTAR_QUEUE)
 
     paginator = s3_client.get_paginator('list_objects_v2')
     pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
@@ -87,22 +92,16 @@ def untar_s3_prefix(bucket, prefix):
     for page in pages:
         for obj in page['Contents']:
             if obj['Key'].endswith('.tar'):
-                # check if already processed
-                status_key = "status/%s" % obj['Key']
+                status_key = "status/%s.processed" % obj['Key']
                 if not key_exists(bucket, status_key):
-                    tar_filename = get_file(bucket, obj['Key'], 'tar-temp', requester_pays=False)
-                    with open(tar_filename, 'rb') as tar_handle:
-                        with tarfile.open(name=None, mode="r:*", fileobj=tar_handle) as tarball:
-                            for tar_file in tarball:
-                                if not tar_file.isfile():
-                                    continue
-                                file_data = tarball.extractfile(tar_file)
-                                key = os.path.join('pdf', tar_file.name)
-                                put_file(DESTINATION_BUCKET, key, file_data.read())
-                    os.unlink(tar_filename)
-                    put_file(bucket, status_key, datetime.datetime.utcnow().isoformat().encode("utf-8"))
+                    untar_queue.send_message(
+                        MessageBody=json.dumps({'key': obj['Key'], 'bucket': bucket}),
+                        MessageGroupId=obj['Key'],
+                        MessageDeduplicationId=obj['Key']
+                    )
+                    log.info('Queued key %s in bucket %s', obj['Key'], bucket)
                 else:
-                    log.info('Tar file %s already processed, skipping', obj['Key'])
+                    log.info("File %s already processed in bucket %s", obj["Key"], bucket)
 
 
 def main():
@@ -112,7 +111,8 @@ def main():
     # Copy all files from one bucket to another
     get_files_from_manifest('manifests/arXiv_pdf_manifest.xml')
 
-    untar_s3_prefix(DESTINATION_BUCKET, 'pdf')
+    # Only needed for testing
+    # populate_sqs_s3_prefix(DESTINATION_BUCKET, 'pdf')
 
 
 if __name__ == "__main__":
