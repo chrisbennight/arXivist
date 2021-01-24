@@ -69,7 +69,7 @@ def copy_file(source_bucket, destination_bucket, key):
                 MessageGroupId=key,
                 MessageDeduplicationId=key
             )
-            log.info('Queued key %s in bucket %s', key, bucket)
+            log.info('Queued key %s in bucket %s', key, destination_bucket)
         else:
             log.info("File %s already processed in bucket %s", key, destination_bucket)
 
