@@ -5,6 +5,7 @@ import daiquiri
 import logging
 from botocore.errorfactory import ClientError
 import tarfile
+import datetime
 
 daiquiri.setup(level=logging.INFO)
 log = daiquiri.getLogger(__name__)
@@ -86,16 +87,22 @@ def untar_s3_prefix(bucket, prefix):
     for page in pages:
         for obj in page['Contents']:
             if obj['Key'].endswith('.tar'):
-                tar_filename = get_file(bucket, obj['Key'], 'tar-temp', requester_pays=False)
-                with open(tar_filename, 'rb') as tar_handle:
-                    with tarfile.open(name=None, mode="r:*", fileobj=tar_handle) as tarball:
-                        for tar_file in tarball:
-                            if not tar_file.isfile():
-                                continue
-                            file_data = tarball.extractfile(tar_file)
-                            key = os.path.join('pdf', tar_file.name)
-                            put_file(DESTINATION_BUCKET, key, file_data.read())
-                os.unlink(tar_filename)
+                # check if already processed
+                status_key = "status/%s" % obj['Key']
+                if not key_exists(bucket, status_key):
+                    tar_filename = get_file(bucket, obj['Key'], 'tar-temp', requester_pays=False)
+                    with open(tar_filename, 'rb') as tar_handle:
+                        with tarfile.open(name=None, mode="r:*", fileobj=tar_handle) as tarball:
+                            for tar_file in tarball:
+                                if not tar_file.isfile():
+                                    continue
+                                file_data = tarball.extractfile(tar_file)
+                                key = os.path.join('pdf', tar_file.name)
+                                put_file(DESTINATION_BUCKET, key, file_data.read())
+                    os.unlink(tar_filename)
+                    put_file(bucket, status_key, datetime.datetime.utcnow().isoformat().encode("utf-8"))
+                else:
+                    log.info('Tar file %s already processed, skipping', obj['Key'])
 
 
 def main():
