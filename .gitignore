@@ -106,3 +106,4 @@ bulk/manifests
 bulk/tar-temp
 bulk/venv
 venv
+manifests*
