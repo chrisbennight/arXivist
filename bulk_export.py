@@ -71,7 +71,7 @@ def copy_file(source_bucket, destination_bucket, key):
             )
             log.info('Queued key %s in bucket %s', key, bucket)
         else:
-            log.info("File %s already processed in bucket %s", key, bucket)
+            log.info("File %s already processed in bucket %s", key, destination_bucket)
 
 
 def get_files_from_manifest(manifest_file):
@@ -113,7 +113,7 @@ def main():
     get_files_from_manifest('manifests/arXiv_pdf_manifest.xml')
 
     # Only needed for testing
-    # populate_sqs_s3_prefix(DESTINATION_BUCKET, 'pdf')
+    #populate_sqs_s3_prefix(DESTINATION_BUCKET, 'pdf')
 
 
 if __name__ == "__main__":
