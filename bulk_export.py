@@ -73,8 +73,8 @@ def get_files_from_manifest(manifest_file):
     for event, elem in ET.iterparse(manifest_file):
         if event == 'end':
             if elem.tag == 'filename':
-                file_name = elem.text
-                copy_file(file_name, SOURCE_BUCKET, DESTINATION_BUCKET)
+                file_key = elem.text
+                copy_file(SOURCE_BUCKET, DESTINATION_BUCKET, file_key)
 
 
 def untar_s3_prefix(bucket, prefix):
