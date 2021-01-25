@@ -35,13 +35,7 @@ def key_exists(bucket, key):
     return True
 
 
-def put_file(bucket, key, source_bytes, check_exists=True):
-
-    if check_exists:
-        if key_exists(bucket, key):
-            logger.info('Key %s in bucket %s already exists, skipping', key, bucket)
-            return
-
+def put_file(bucket, key, source_bytes):
     logger.info('Writing data to key %s in bucket %s', key, bucket)
     s3_resource = boto3.resource('s3')
     bucket = s3_resource.Bucket(bucket)
@@ -118,7 +112,7 @@ def process_record(record):
 
     metadata_key_for_record = f"extracted/metadata/{datepart}/{record_id}.json"
 
-    put_file(S3_BUCKET, metadata_key_for_record, json.dumps(record).encode('utf-8'), check_exists=False)
+    put_file(S3_BUCKET, metadata_key_for_record, json.dumps(record).encode('utf-8'))
 
 
 def element_to_dict(xml_element):
@@ -141,7 +135,6 @@ def lambda_handler(event, context):
     else:
         last_record_date = None
 
-    last_record_date = '2021-01-25'
     resumption_token = None
     response_datestamp = None
 
