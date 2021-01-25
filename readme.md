@@ -43,9 +43,9 @@ Mirrored data will be maintained in an s3 folder like such:
     └── pdf/
         └── arXiv_pdf_{date}_{part}.tar.processed
 ```
-`{date}` above is the last two digits of the year and the month integer padded to two digits, i.e. February, 2010 looks like 1002
-`{seqid}` is a monotonically increasing integer assigned to papers when they are submitted
-`{part}` is  a 3 digit integer that is a partition of all files within a month.  Each tar archive is capped at 512MB, after which a new archive with a larger part number is created
+`{date}` above is the last two digits of the year and the month integer padded to two digits, i.e. February, 2010 looks like 1002<br />
+`{seqid}` is a monotonically increasing integer assigned to papers when they are submitted<br />
+`{part}` is  a 3 digit integer that is a partition of all files within a month.  Each tar archive is capped at 512MB, after which a new archive with a larger part number is created<br />
 
 The data that will normally be mirrored is under extracted/.   If a person wants to source the output they can trigger an event / SNS notification on this prefix.
 
@@ -70,14 +70,14 @@ This is comprised of `bulk_export.py` and `untar_lambda.py`
     * Memory of 1.5GB
     * Runtime of 15 min  (typically 6 min is sufficient but no reason to cap)
     
-Run `bulk_export.py` in a tmux window (or screen or nohup & - it's just a long running process) on an ec2 instance.
-This will pull the historical s3 items from the arxiv requester pays bucket into a local bucket and submit them to the sqs queue for untaring
-The lambda will untar the files are put the output in the s3 prefix extracted.
+Run `bulk_export.py` in a tmux window (or screen or nohup & - it's just a long running process) on an ec2 instance.<br />
+This will pull the historical s3 items from the arxiv requester pays bucket into a local bucket and submit them to the sqs queue for untaring<br />
+The lambda will untar the files are put the output in the s3 prefix extracted.<br />
 
 It's safe to re-run this if needed as the archives and contents will only be copied if they don't already exist/haven't already been processed
 
-You will now want to run `harvest_lambda.py` on the ec2 box (you can run it as `python3 harvest_lambda.py`).  This will start harvesting the OAI-PMH metadata endpoint.
-The first time this harvest runs it will take awhile, and won't checkpoint until complete.  Overnight is generally sufficient.  Run this in tmux or some other similar mechanism like the previous process.
+You will now want to run `harvest_lambda.py` on the ec2 box (you can run it as `python3 harvest_lambda.py`).  This will start harvesting the OAI-PMH metadata endpoint.<br />
+The first time this harvest runs it will take awhile, and won't checkpoint until complete.  Overnight is generally sufficient.  Run this in tmux or some other similar mechanism like the previous process.<br />
 
 Once done the ec2 box, sqs queue, and untar_lambda.py resources can be deleted.
 
@@ -91,9 +91,9 @@ The streaming component consists of `harvest_lambda.py`
     * Python runtime
     * Runtime limit of 15 minutes
     
-Arxiv delivers updates in a batch once per day, so we only need to harvest once per day.
-The lambda stores in dynamo the last time it ran, so after the first bulk harvest will only pull items since the last run.
-It will pull the metadata from the OAI-PMH endpoint, and pdf files from the api gateway individually (so no untar, etc. needed)
+Arxiv delivers updates in a batch once per day, so we only need to harvest once per day.<br />
+The lambda stores in dynamo the last time it ran, so after the first bulk harvest will only pull items since the last run.<br />
+It will pull the metadata from the OAI-PMH endpoint, and pdf files from the api gateway individually (so no untar, etc. needed)<br />
 
 Arxiv tends to take this endpoint down around 7-9 or so eastern, so it's better to have the 24 hour interval start 12 hours or so off from that range.
 
