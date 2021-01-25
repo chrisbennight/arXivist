@@ -3,6 +3,7 @@ import logging
 from botocore.errorfactory import ClientError
 import urllib.request
 import urllib.parse
+from urllib.error import HTTPError
 import time
 from io import StringIO
 from xml.etree import ElementTree as ET
@@ -47,8 +48,19 @@ def put_file(bucket, key, source_bytes):
 
 
 def get_url_bytes(url):
-    response = urllib.request.urlopen(url)
-    return response.read()
+    while True:
+        try:
+            response = urllib.request.urlopen(url)
+            return response.read()
+        except HTTPError as e:
+            retcode = e.code
+            try:
+                retry_after = int(e.headers.get('Retry-After'))
+            except:
+                retry_after = 600
+            if retcode != 200:
+                logger.error('URL %s returned code %s, sleeping for %s', url, retcode, retry_after)
+                time.sleep(retry_after)
 
 
 def pdf_to_bucket(bucket, record_id, pdf_key_for_record):
