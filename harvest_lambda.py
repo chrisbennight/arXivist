@@ -14,7 +14,6 @@ REGION = 'us-east-1'
 DYNAMO_TABLE = "arxivist_status"
 S3_BUCKET = 'arxivist'
 S3_PREFIX = 'delivered'
-DATEFORMAT = '%Y-%m-%d %H:%M:%S'
 
 if len(logging.getLogger().handlers) > 0:
     # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
