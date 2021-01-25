@@ -1,4 +1,3 @@
-sickle
 boto3
 
 

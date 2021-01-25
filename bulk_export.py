@@ -1,13 +1,12 @@
 import boto3
 import os
 import xml.etree.ElementTree as ET
-import daiquiri
 import logging
 from botocore.errorfactory import ClientError
 import json
 
-daiquiri.setup(level=logging.INFO)
-log = daiquiri.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 SOURCE_BUCKET = "arxiv"
 DESTINATION_BUCKET = "arxivist"
@@ -39,9 +38,9 @@ def get_file(bucket, key, output_dir, requester_pays=False):
     else:
         extra_args = None
     if os.path.exists(output_file):
-        log.info("File %s already exists, skipping", output_file)
+        logger.info("File %s already exists, skipping", output_file)
     else:
-        log.info('Downloading key %s from bucket %s', key, bucket)
+        logger.info('Downloading key %s from bucket %s', key, bucket)
         bucket_resource.download_file(key, output_file, ExtraArgs=extra_args)
     return output_file
 
@@ -56,9 +55,9 @@ def copy_file(source_bucket, destination_bucket, key):
     }
     bucket = s3_resource.Bucket(destination_bucket)
     if key_exists(destination_bucket, key):
-        log.info('Key %s already exists, skipping', key)
+        logger.info('Key %s already exists, skipping', key)
     else:
-        log.info('Copying %s', key)
+        logger.info('Copying %s', key)
         bucket.copy(copy_source, key, ExtraArgs={'RequestPayer': 'requester'})
 
         status_key = "status/%s.processed" % key
@@ -69,9 +68,9 @@ def copy_file(source_bucket, destination_bucket, key):
                 MessageGroupId=key,
                 MessageDeduplicationId=key
             )
-            log.info('Queued key %s in bucket %s', key, destination_bucket)
+            logger.info('Queued key %s in bucket %s', key, destination_bucket)
         else:
-            log.info("File %s already processed in bucket %s", key, destination_bucket)
+            logger.info("File %s already processed in bucket %s", key, destination_bucket)
 
 
 def get_files_from_manifest(manifest_file):
@@ -100,9 +99,9 @@ def populate_sqs_s3_prefix(bucket, prefix):
                         MessageGroupId=obj['Key'],
                         MessageDeduplicationId=obj['Key']
                     )
-                    log.info('Queued key %s in bucket %s', obj['Key'], bucket)
+                    logger.info('Queued key %s in bucket %s', obj['Key'], bucket)
                 else:
-                    log.info("File %s already processed in bucket %s", obj["Key"], bucket)
+                    logger.info("File %s already processed in bucket %s", obj["Key"], bucket)
 
 
 def main():
