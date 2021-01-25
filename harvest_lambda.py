@@ -83,6 +83,10 @@ def pdf_to_bucket(bucket, record_id, pdf_key_for_record):
             if 'PDF unavailable for' in pdf_bytes.decode('utf-8'):
                 logger.info('PDF unavailable: %s - skipping', url)
                 return
+            if 'We are now attempting to automatically create some PDF' in pdf_bytes.decode('utf-8'):
+                logger.info('PDF %s not generated yet, sleeping for 15 seconds', url)
+                time.sleep(15)
+                return pdf_to_bucket(bucket, record_id, pdf_key_for_record)
         except:
             pass
         raise ValueError('File %s was not a valid pdf' % url)
@@ -137,6 +141,7 @@ def lambda_handler(event, context):
     else:
         last_record_date = None
 
+    last_record_date = '2021-01-25'
     resumption_token = None
     response_datestamp = None
 
