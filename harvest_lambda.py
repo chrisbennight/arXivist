@@ -152,6 +152,7 @@ def lambda_handler(event, context):
             process_record(record_dict)
 
         resumption_token = dom_root.findall("ListRecords/resumptionToken")[0].text
+        logger.info(resumption_token)
 
     if response_datestamp is not None:
         logger.info('Setting new checkpoint to %s', response_datestamp)
