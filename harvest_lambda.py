@@ -82,8 +82,7 @@ def pdf_to_bucket(bucket, record_id, pdf_key_for_record):
                 time.sleep(15)
                 return pdf_to_bucket(bucket, record_id, pdf_key_for_record)
         except:
-            pass
-        raise ValueError('File %s was not a valid pdf' % url)
+            return
     logger.info('Writing %s to s3://%s/%s', url, bucket, pdf_key_for_record)
     put_file(bucket, pdf_key_for_record, pdf_bytes)
 
