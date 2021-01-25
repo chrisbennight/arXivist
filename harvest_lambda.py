@@ -137,7 +137,6 @@ def lambda_handler(event, context):
     else:
         last_record_date = None
 
-    last_record_date = '2021-01-24'
     resumption_token = None
     response_datestamp = None
 
