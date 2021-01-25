@@ -134,12 +134,12 @@ def lambda_handler(event, context):
     else:
         last_record_date = None
 
-    resumption_token = None
+    resumption_token = "guard_value"
     response_datestamp = None
 
     base_endpoint = ARXIV_ENDPOINT + '?verb=ListRecords'
-    while resumption_token != "":
-        if resumption_token is None:
+    while resumption_token is not None and resumption_token != "":
+        if resumption_token == "guard_value":
             new_endpoint = base_endpoint + "&metadataPrefix=arXivRaw"
             if last_record_date is not None:
                 new_endpoint += "&from=%s" % last_record_date
