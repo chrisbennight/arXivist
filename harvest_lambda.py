@@ -165,6 +165,7 @@ def lambda_handler(event, context):
 
         resumption_token = dom_root.findall("ListRecords/resumptionToken")[0].text
         logger.info(resumption_token)
+        time.sleep(3) # shouldn't need this, but if something weird happens ensures we don't DoS endpoint
 
     if response_datestamp is not None:
         logger.info('Setting new checkpoint to %s', response_datestamp)
